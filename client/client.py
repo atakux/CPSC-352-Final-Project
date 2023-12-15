@@ -2,7 +2,14 @@ import sqlite3
 import os
 from pwinput import pwinput
 from utils import valid_email
-path = os.getcwd()
+from pathlib import Path
+from utils import db_connection
+
+DB = "secure_purchase_order.db"
+PARENT_DIR = Path.cwd().parent
+DB_PATH = PARENT_DIR/DB
+
+conn = db_connection(db_path=DB_PATH)
 
 def main():
     try:
@@ -11,15 +18,21 @@ def main():
         if user_in == 'y':
             pass
         if user_in == 'n':
-            user_name = input("Please enter a username: ")
+            username = input("Please enter a username: ")
+            password = pwinput(prompt="Please enter a password: ")
             email = input("Please enter an email: ")
 
             if not valid_email(email):
                 raise Exception("Invalid email.")
-        
+            
+            cursor = conn.cursor()
+            sql = "select * from users where username = ? or email = ?;"
+            cursor.execute(sql, (username, email))
+            result = cursor.fetchall()
+            
+            if len(result) > 0:
+                raise Exception("Username or email already in use.")
 
-
-            user_pass = pwinput(prompt="Please enter a password: ")
     except Exception as e:
         print(str(e))
         print("Closing program...")
