@@ -3,7 +3,7 @@ import os
 from pwinput import pwinput
 from utils import valid_email
 from pathlib import Path
-from utils import db_connection
+from utils import db_connection, hash_password
 
 DB = "secure_purchase_order.db"
 PARENT_DIR = Path.cwd().parent
@@ -25,9 +25,11 @@ def main():
             if not valid_email(email):
                 raise Exception("Invalid email.")
             
+            hashed_pw = hash_password(password)
+            
             cursor = conn.cursor()
             sql = "select * from users where username = ? or email = ?;"
-            cursor.execute(sql, (username, email))
+            cursor.execute(sql, (username, email, hashed_pw[1], hashed_pw[0]))
             result = cursor.fetchall()
             
             if len(result) > 0:
