@@ -11,38 +11,47 @@ import threading
 from cryptography_utils import gen_public_private_keys
 from cryptography_utils import export_key
 from cryptography_utils import import_key
+from cryptography_utils import encrypt_message
+from cryptography_utils import decrypt_message
+from typing import List
 
 SIZE = 1024
 FORMAT = "utf-8"
 DISCONNECT_MESSAGE = "QUIT"
 
 def handle_client(conn: socket.socket, addr: tuple):
-    print(f"Incoming connection from: {addr}")
-    
-    username = conn.recv(SIZE).decode(FORMAT)
-    print(f"Connected with: {username}")
-
-    public_key_file = f"{username}_public_key.pem"
-    user_public_key = import_key(public_key_file)
-
-    connected = True
-    while connected:
-        message = conn.recv(SIZE).decode(FORMAT)
-
-        print(f"{addr} sent: {message}")
+        # This is where the bulk of handling responses from the client will go
+        print(f"Incoming connection from: {addr}")
         
-        if message == DISCONNECT_MESSAGE:
-            connected = False
+        username = conn.recv(SIZE).decode(FORMAT)
+        print(f"Connected with: {username}")
 
-        message = "Test"
-        conn.send(message.encode(FORMAT))
-    
-    conn.close()
+        server_private_key = import_key("server_private_key.pem")
+        user_public_key = import_key(f"{username}_public_key.pem")        
 
-threads = []
+        connected = True
+        while connected:
+            encrypted_message = conn.recv(SIZE)
+            decrypted_message = decrypt_message(encrypted_message, server_private_key, FORMAT)
+
+            print(f"{addr} sent: {decrypted_message}")
+            
+            if decrypted_message.upper() == DISCONNECT_MESSAGE:
+                connected = False
+
+            message = "Test"
+            encrypted_message = encrypt_message(message.encode(FORMAT), user_public_key)
+            conn.send(encrypted_message)
+        
+        conn.close()
+
+# All threads
+threads: List[threading.Thread] = []
 
 def main():
     try:
+        server = None
+
         # Export public and private keys (private key goes into CWD)
         public_key, private_key = gen_public_private_keys()
         export_key(private_key, "server_private_key.pem")
@@ -60,7 +69,7 @@ def main():
 
         server.bind(addr)
         server.listen()
-        print("Listening for incoming connections...")
+        print(f"Listening for incoming connections... on {ip}:{port}")
 
         while True:
             conn, addr = server.accept()
@@ -68,15 +77,21 @@ def main():
             thread = threading.Thread(target=handle_client, args=(conn, addr))
             thread.start()
 
+            # Append all threads to the threads list to later call join()
+            threads.append(thread)
     except KeyboardInterrupt:
-        print("Keyboard interrupt found, shutting down...")
+        print("Keyboard interrupt found (CTRL+C), shutting down...")
     except Exception as e:
         print(str(e))
-    finally: 
-        if 'server' in locals():
+    finally:
+        # If server exists, close it
+        if server:
             server.close()
+        
+        # Clean up threads by calling join()
         for thread in threads:
-            thread.join()
+            if thread.is_alive():
+                thread.join()
 
 
 if __name__ == '__main__':

@@ -10,11 +10,14 @@ import socket
 from pathlib import Path
 from pwinput import pwinput
 from utils import valid_email
-from utils import hash_password
-from utils import check_password
 from utils import db_connection
+from cryptography_utils import hash_password
+from cryptography_utils import check_password
 from cryptography_utils import gen_public_private_keys
 from cryptography_utils import export_key
+from cryptography_utils import import_key
+from cryptography_utils import decrypt_message
+from cryptography_utils import encrypt_message
 
 DB = "secure_purchase_order.db"
 PARENT_DIR = Path.cwd().parent
@@ -95,6 +98,9 @@ def main():
             ip = input("Please input the server ip: ").strip()
             port = int(input("Please input the port to connect to: ").strip())
             addr = (ip, port)
+            
+            user_private_key = import_key(f"{username}_private_key.pem")
+            server_public_key = import_key("server_public_key.pem")
 
             client.connect(addr)
             print(f"Client connected to server at {ip}:{port}")
@@ -104,16 +110,21 @@ def main():
 
             connected = True
             while connected:
+                # This is where the bulk of handling responses from server will go
                 print("Please enter a command or enter QUIT to stop.")
                 message = input(">")
-                client.send(message.encode(FORMAT))
+
+                # Encrypt message to server using its public key
+                encrypted_message = encrypt_message(message.encode(FORMAT), server_public_key)
+                client.send(encrypted_message)
 
                 if message.upper() == DISCONNECT_MESSAGE:
                     connected = False
             
-                message = client.recv(1024)
-                message = message.decode()
-                print(f"Received from server: {message}")
+                # Received encrypted message from server, decrypt using our private key
+                encrypted_message = client.recv(SIZE)
+                decrypted_message = decrypt_message(encrypted_message, user_private_key, FORMAT)
+                print(f"Received message from server: {decrypted_message}")
 
             client.close()
     except Exception as e:
