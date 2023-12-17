@@ -1,24 +1,31 @@
 import socket
 
-def main():
-    s = socket.socket()
-    HOST = "127.0.0.1"
-    PORT = 50000
+SIZE = 1024
+FORMAT = "utf-8"
 
-    print("Server has started")
+def main():
+    server = socket.socket()
+    ip = input("Please input the server ip: ").strip()
+    port = int(input("Please input the port to connect to: ").strip())
+    addr = (ip, port)
+
+    print(f"Server has started, listening on {ip}:{port}")
     print("Waiting for client to connect...")
 
-    s.bind((HOST, PORT))
-    s.listen(1)
+    server.bind(addr)
+    server.listen()
 
-    conn, addr = s.accept()
-    print(f"Connection from {addr}")
+    conn, addr = server.accept()
+    print(f"Accepted connection from: {addr}")
 
     while True:
-        msg = conn.recv(1024).decode('utf-8')
-        if not msg:
+        msg = conn.recv(SIZE).decode(FORMAT)
+        
+        if msg == 'QUIT':
             break
+        
         print(f"{addr} sent: {msg}")
+        
     conn.close()
 
 if __name__ == '__main__':

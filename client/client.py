@@ -1,20 +1,30 @@
-import sqlite3
+import sys
 import os
+import socket
+from pathlib import Path
 from pwinput import pwinput
+
+# Append parent directory to path
+current_dir = os.path.dirname(os.path.abspath(__file__))
+parent_dir = os.path.dirname(current_dir)
+sys.path.append(parent_dir)
+
 from utils import valid_email
 from utils import hash_password
 from utils import check_password
-from pathlib import Path
 from utils import db_connection
 
 DB = "secure_purchase_order.db"
 PARENT_DIR = Path.cwd().parent
 DB_PATH = PARENT_DIR/DB
-
-conn = db_connection(db_path=DB_PATH)
+SIZE = 1024
+FORMAT = "utf-8"
+DISCONNECT_MESSAGE = "QUIT"
 
 def main():
     try:
+        conn = db_connection(db_path=DB_PATH)
+
         # User is not auth
         authenticated = False
 
@@ -69,6 +79,27 @@ def main():
             conn.close()
         else:
             print("Invalid selection.")
+
+        if authenticated:
+            client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            ip = input("Please input the server ip: ").strip()
+            port = int(input("Please input the port to connect to: ").strip())
+            addr = (ip, port)
+
+            client.connect(addr)
+            print(f"Client connected to server at {ip}:{port}")
+
+            connected = True
+            while connected:
+                print("Please enter a command or enter QUIT to stop.")
+                message = input(">")
+
+                client.send(message.encode(FORMAT))
+
+                if message.upper() == DISCONNECT_MESSAGE:
+                    connected = False
+            
+            client.close()
     except Exception as e:
         print(str(e))
         print("Closing program...")
