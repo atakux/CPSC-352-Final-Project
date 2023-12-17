@@ -1,18 +1,21 @@
 import sys
 import os
-import socket
-from pathlib import Path
-from pwinput import pwinput
 
 # Append parent directory to path
 current_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.dirname(current_dir)
 sys.path.append(parent_dir)
 
+import socket
+from pathlib import Path
+from pwinput import pwinput
 from utils import valid_email
 from utils import hash_password
 from utils import check_password
 from utils import db_connection
+from cryptography_utils import gen_public_private_keys
+from cryptography_utils import export_private_key
+from cryptography_utils import export_public_key
 
 DB = "secure_purchase_order.db"
 PARENT_DIR = Path.cwd().parent
@@ -69,6 +72,14 @@ def main():
             
             # Insert hashed password along with other information into users
             print("Creating user account...")
+
+            # Generate public, private key pair for this user
+            public_key, private_key = gen_public_private_keys()
+            user_private_key_file = f"{username}_private_key.pem"
+            user_public_key_file = f"../server/{username}_public_key.pem"
+            export_private_key(private_key, user_private_key_file)
+            export_public_key(public_key, user_public_key_file)
+
             hashed_pw = hash_password(password)
             sql = "insert into users (username, email, password) values (?, ?, ?)"
             data = [username, email, hashed_pw]
@@ -89,16 +100,22 @@ def main():
             client.connect(addr)
             print(f"Client connected to server at {ip}:{port}")
 
+            message = username
+            client.send(message.encode(FORMAT))
+
             connected = True
             while connected:
                 print("Please enter a command or enter QUIT to stop.")
                 message = input(">")
-
                 client.send(message.encode(FORMAT))
 
                 if message.upper() == DISCONNECT_MESSAGE:
                     connected = False
             
+                message = client.recv(1024)
+                message = message.decode()
+                print(f"Received from server: {message}")
+
             client.close()
     except Exception as e:
         print(str(e))
