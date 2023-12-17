@@ -14,8 +14,7 @@ from utils import hash_password
 from utils import check_password
 from utils import db_connection
 from cryptography_utils import gen_public_private_keys
-from cryptography_utils import export_private_key
-from cryptography_utils import export_public_key
+from cryptography_utils import export_key
 
 DB = "secure_purchase_order.db"
 PARENT_DIR = Path.cwd().parent
@@ -77,8 +76,8 @@ def main():
             public_key, private_key = gen_public_private_keys()
             user_private_key_file = f"{username}_private_key.pem"
             user_public_key_file = f"../server/{username}_public_key.pem"
-            export_private_key(private_key, user_private_key_file)
-            export_public_key(public_key, user_public_key_file)
+            export_key(private_key, user_private_key_file)
+            export_key(public_key, user_public_key_file)
 
             hashed_pw = hash_password(password)
             sql = "insert into users (username, email, password) values (?, ?, ?)"

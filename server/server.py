@@ -8,12 +8,9 @@ sys.path.append(parent_dir)
 
 import socket
 import threading
-from utils import db_connection
 from cryptography_utils import gen_public_private_keys
-from cryptography_utils import export_private_key
-from cryptography_utils import export_public_key
-from cryptography_utils import import_private_key
-from cryptography_utils import import_public_key
+from cryptography_utils import export_key
+from cryptography_utils import import_key
 
 SIZE = 1024
 FORMAT = "utf-8"
@@ -26,7 +23,7 @@ def handle_client(conn: socket.socket, addr: tuple):
     print(f"Connected with: {username}")
 
     public_key_file = f"{username}_public_key.pem"
-    user_public_key = import_public_key(public_key_file)
+    user_public_key = import_key(public_key_file)
 
     connected = True
     while connected:
@@ -48,8 +45,8 @@ def main():
     try:
         # Export public and private keys (private key goes into CWD)
         public_key, private_key = gen_public_private_keys()
-        export_private_key(private_key, "server_private_key.pem")
-        export_public_key(public_key, "../client/server_public_key.pem")
+        export_key(private_key, "server_private_key.pem")
+        export_key(public_key, "../client/server_public_key.pem")
 
         server = socket.socket()
         # Allow reuse of this socket address
