@@ -13,6 +13,7 @@ from cryptography_utils import export_key
 from cryptography_utils import import_key
 from cryptography_utils import encrypt_message
 from cryptography_utils import decrypt_message
+from utils import view_inventory
 from utils import place_order
 from typing import List
 
@@ -48,8 +49,16 @@ def handle_client(conn: socket.socket, addr: tuple):
             if decrypted_message.upper() == DISCONNECT_MESSAGE:
                 connected = False
             elif decrypted_message.upper() == VIEW_INV:
-                # TODO: implement this
-                print("client chose to view inventory")
+                # Send to client the inventory list
+                inventory = view_inventory()
+                inventory_str = "\n".join([f"{item[0]}: {item[1]}, Flavor: {item[2]}, Price: {item[3]}, Quantity: {item[4]}" for item in inventory])
+
+                # Encrypt the inventory data
+                encrypted_inventory = encrypt_message(inventory_str.encode(FORMAT), user_public_key)
+
+                # Send encrypted inventory data to client
+                conn.sendall(encrypted_inventory + b"<END>")
+                print("Inventory sent to client!")
             elif decrypted_message.upper() == PLACE_ORDER:
                 # TODO: implement this
                 item_options = "Bagel, Toast, Croissant"
