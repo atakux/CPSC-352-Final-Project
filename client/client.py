@@ -129,6 +129,26 @@ def main():
 
                 if message.upper() == DISCONNECT_MESSAGE:
                     connected = False
+                elif message.upper() == VIEW_INV:
+                    # Get the inventory list from the server and encrypt
+                    encrypted_message = encrypt_message(message.encode(FORMAT), server_public_key)
+                    client.send(encrypted_message)
+
+                    # Receive the encrypted inventory list from the server
+                    decrypted_inventory = b""
+                    while True:
+                        encrypted_chunk = client.recv(SIZE)
+                        if not encrypted_chunk:
+                            break
+                        decrypted_inventory += encrypted_chunk
+                        #End of data transmission of the inventory. Break out of loop.
+                        if b"<END>" in decrypted_inventory:
+                            break 
+                    # Remove the terminator from the ciphertext
+                    inventory_with_end = decrypted_inventory.split(b"<END>")[0]
+                    inventory_str = decrypt_message(inventory_with_end, user_private_key, FORMAT)
+                    # Print inventory 
+                    print(f"Inventory received from server:\n{inventory_str}")
                 elif message.upper() == PLACE_ORDER:
                     # Receive the choices provided by the server
                     encrypted_items = client.recv(SIZE)
