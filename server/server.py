@@ -13,6 +13,7 @@ from cryptography_utils import export_key
 from cryptography_utils import import_key
 from cryptography_utils import encrypt_message
 from cryptography_utils import decrypt_message
+from utils import place_order
 from typing import List
 
 SIZE = 1024
@@ -25,8 +26,13 @@ CHANGE_PW = "PWD"
 def handle_client(conn: socket.socket, addr: tuple):
         # This is where the bulk of handling responses from the client will go
         print(f"Incoming connection from: {addr}")
+        print(addr)
         
-        username = conn.recv(SIZE).decode(FORMAT)
+        user_credentials = conn.recv(SIZE).decode(FORMAT)
+        usr_creds_lst = user_credentials.split(", ")
+        username = usr_creds_lst[0]
+        email = usr_creds_lst[1]
+
         print(f"Connected with: {username}")
 
         server_private_key = import_key("server_private_key.pem")
@@ -46,7 +52,21 @@ def handle_client(conn: socket.socket, addr: tuple):
                 print("client chose to view inventory")
             elif decrypted_message.upper() == PLACE_ORDER:
                 # TODO: implement this
-                print("client chose to place order")
+                item_options = "Bagel, Toast, Croissant"
+                encrypted_items = encrypt_message(item_options.encode(FORMAT), user_public_key)
+                conn.send(encrypted_items)
+
+
+                encrypted_choice = conn.recv(SIZE)
+                usr_choice = decrypt_message(encrypted_choice, server_private_key, FORMAT)
+
+                print(f"{username} wants {usr_choice}")
+                print(f"Sending email to {username} at email: {email}")
+
+                place_order(username, email, usr_choice)
+
+
+
             elif decrypted_message.upper() == CHANGE_PW:
                 # TODO: implement this
                 print("client chose to change password")
