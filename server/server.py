@@ -18,6 +18,9 @@ from typing import List
 SIZE = 1024
 FORMAT = "utf-8"
 DISCONNECT_MESSAGE = "QUIT"
+VIEW_INV = "VIEW"
+PLACE_ORDER = "ORDER"
+CHANGE_PW = "PWD"
 
 def handle_client(conn: socket.socket, addr: tuple):
         # This is where the bulk of handling responses from the client will go
@@ -38,6 +41,15 @@ def handle_client(conn: socket.socket, addr: tuple):
             
             if decrypted_message.upper() == DISCONNECT_MESSAGE:
                 connected = False
+            elif decrypted_message.upper() == VIEW_INV:
+                # TODO: implement this
+                print("client chose to view inventory")
+            elif decrypted_message.upper() == PLACE_ORDER:
+                # TODO: implement this
+                print("client chose to place order")
+            elif decrypted_message.upper() == CHANGE_PW:
+                # TODO: implement this
+                print("client chose to change password")
 
             message = "Test"
             encrypted_message = encrypt_message(message.encode(FORMAT), user_public_key)

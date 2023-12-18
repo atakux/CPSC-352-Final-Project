@@ -110,9 +110,15 @@ def main():
 
             connected = True
             while connected:
+                print("")
+
                 # This is where the bulk of handling responses from server will go
-                print("Please enter a command or enter QUIT to stop.")
-                message = input(">")
+                print("Please enter one of the commands below:")
+                print("\t- VIEW  : View store inventory")
+                print("\t- ORDER : Place an order")
+                print("\t- PWD   : Change password") 
+                print("\t- QUIT  : Quit the program\n")
+                message = input(" > ")
 
                 # Encrypt message to server using its public key
                 encrypted_message = encrypt_message(message.encode(FORMAT), server_public_key)
