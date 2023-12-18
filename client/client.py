@@ -18,6 +18,8 @@ from cryptography_utils import export_key
 from cryptography_utils import import_key
 from cryptography_utils import decrypt_message
 from cryptography_utils import encrypt_message
+from cryptography_utils import sign_message
+from cryptography_utils import verify_sign
 
 DB = "secure_purchase_order.db"
 PARENT_DIR = Path.cwd().parent
@@ -130,27 +132,37 @@ def main():
                 if message.upper() == DISCONNECT_MESSAGE:
                     connected = False
                 elif message.upper() == PLACE_ORDER:
-                    # Receive the choices provided by the server
+                    # Receive the choices & signature provided by the server
                     encrypted_items = client.recv(SIZE)
-                    item_options = decrypt_message(encrypted_items, user_private_key, FORMAT)
+                    item_options_enc = encrypted_items[:-256]
+                    signed_items = encrypted_items[-256:]
 
-                    lst_items = item_options.split(", ")
+                    # Verify signature
+                    if verify_sign(item_options_enc, signed_items, server_public_key):
+                        item_options = decrypt_message(item_options_enc, user_private_key, FORMAT)
 
-                    print("Please choose from the following options:\n")
+                        lst_items = item_options.split(", ")
 
-                    # Display the choices aesthetically for the client & receive their choice
-                    for i in range(len(lst_items)):
-                        print(f"\t{i+1}. {lst_items[i]}")
+                        print("Please choose from the following options:\n")
 
-                    item_choice = int(input(" > "))
+                        # Display the choices aesthetically for the client & receive their choice
+                        for i in range(len(lst_items)):
+                            print(f"\t{i+1}. {lst_items[i]}")
 
-                    # Store the item they wanted & send it back to the server
-                    for i in range(len(lst_items)):
-                        if item_choice == i+1:
-                            usr_choice = lst_items[i]
+                        item_choice = int(input(" > "))
 
-                    encrypted_choice = encrypt_message(usr_choice.encode(FORMAT), server_public_key)
-                    client.send(encrypted_choice)
+                        # Store the item they wanted & send it back to the server
+                        for i in range(len(lst_items)):
+                            if item_choice == i+1:
+                                usr_choice = lst_items[i]
+
+                        # Encrypt the choice, create signature, send both to server
+                        encrypted_choice = encrypt_message(usr_choice.encode(FORMAT), server_public_key)
+                        msg_signature = sign_message(encrypted_choice, user_private_key)
+                        client.send(encrypted_choice + msg_signature)
+                    else:
+                        print("Signature did not match.")
+
                 else:
                     print("Invalid selection.")
             

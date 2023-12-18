@@ -13,6 +13,8 @@ from cryptography_utils import export_key
 from cryptography_utils import import_key
 from cryptography_utils import encrypt_message
 from cryptography_utils import decrypt_message
+from cryptography_utils import sign_message
+from cryptography_utils import verify_sign
 from utils import place_order
 from typing import List
 
@@ -54,17 +56,26 @@ def handle_client(conn: socket.socket, addr: tuple):
                 # TODO: implement this
                 item_options = "Bagel, Toast, Croissant"
                 encrypted_items = encrypt_message(item_options.encode(FORMAT), user_public_key)
-                conn.send(encrypted_items)
+                
+                signed_items = sign_message(encrypted_items, server_private_key)
+                conn.send(encrypted_items + signed_items)
 
-
+                # Receive encrypted choice & signature
                 encrypted_choice = conn.recv(SIZE)
-                usr_choice = decrypt_message(encrypted_choice, server_private_key, FORMAT)
+                usr_choice_enc = encrypted_choice[:-256]
+                signature = encrypted_choice[-256:]
 
-                print(f"{username} wants {usr_choice}")
-                print(f"Sending email to {username} at email: {email}")
+                # Verify signature
+                if verify_sign(usr_choice_enc, signature, user_public_key):
 
-                place_order(username, email, usr_choice)
+                    usr_choice = decrypt_message(usr_choice_enc, server_private_key, FORMAT)
 
+                    print(f"{username} wants {usr_choice}")
+                    print(f"Sending email to {username} at email: {email}")
+
+                    place_order(username, email, usr_choice)
+                else:
+                    print("Signature did not match.")
 
 
             elif decrypted_message.upper() == CHANGE_PW:
