@@ -25,6 +25,9 @@ DB_PATH = PARENT_DIR/DB
 SIZE = 1024
 FORMAT = "utf-8"
 DISCONNECT_MESSAGE = "QUIT"
+VIEW_INV = "VIEW"
+PLACE_ORDER = "ORDER"
+CHANGE_PW = "PWD"
 
 def main():
     try:
@@ -105,7 +108,7 @@ def main():
             client.connect(addr)
             print(f"Client connected to server at {ip}:{port}")
 
-            message = username
+            message = f"{username}, {email}"
             client.send(message.encode(FORMAT))
 
             connected = True
@@ -126,6 +129,30 @@ def main():
 
                 if message.upper() == DISCONNECT_MESSAGE:
                     connected = False
+                elif message.upper() == PLACE_ORDER:
+                    # Receive the choices provided by the server
+                    encrypted_items = client.recv(SIZE)
+                    item_options = decrypt_message(encrypted_items, user_private_key, FORMAT)
+
+                    lst_items = item_options.split(", ")
+
+                    print("Please choose from the following options:\n")
+
+                    # Display the choices aesthetically for the client & receive their choice
+                    for i in range(len(lst_items)):
+                        print(f"\t{i+1}. {lst_items[i]}")
+
+                    item_choice = int(input(" > "))
+
+                    # Store the item they wanted & send it back to the server
+                    for i in range(len(lst_items)):
+                        if item_choice == i+1:
+                            usr_choice = lst_items[i]
+
+                    encrypted_choice = encrypt_message(usr_choice.encode(FORMAT), server_public_key)
+                    client.send(encrypted_choice)
+                else:
+                    print("Invalid selection.")
             
                 # Received encrypted message from server, decrypt using our private key
                 encrypted_message = client.recv(SIZE)
