@@ -1,7 +1,7 @@
 import bcrypt
 from Crypto.PublicKey import RSA
 from Crypto.Cipher import PKCS1_OAEP
-from Crypto.PublicKey import RSA
+from Crypto.Hash import SHA256
 from Crypto.Signature import pkcs1_15
 
 def hash_password(password: str) -> str:
