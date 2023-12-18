@@ -10,3 +10,4 @@
 
 ## Credits
 - Daniel: Wrote the basis of the project code. This includes the client.py, concurrent server.py, cryptographic utilities (RSA enc/dec, gen keys, hash passwords), initial users database table, utils.py
+- Angela: wrote email confirmation code. This includes the function place_order in utils.py, in addition to various lines of code in client.py and server.py to ensure a smooth run. It sends the an email to the user stating what item they ordered.
