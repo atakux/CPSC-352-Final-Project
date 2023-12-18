@@ -61,15 +61,15 @@ def handle_client(conn: socket.socket, addr: tuple):
 
             place_order(username, usr_choice)
 
+            # Send confirmation of email to client
+            confirmation = f"Sent an order confirmation for your purchase of {usr_choice} to your email, {username}!"
+            encrypted_conf = encrypt_message(confirmation.encode(FORMAT), user_public_key)
+            conn.send(encrypted_conf)
 
 
         elif decrypted_message.upper() == CHANGE_PW:
             # TODO: implement this
             print("client chose to change password")
-
-        message = "Test"
-        encrypted_message = encrypt_message(message.encode(FORMAT), user_public_key)
-        conn.send(encrypted_message)
     
     conn.close()
 

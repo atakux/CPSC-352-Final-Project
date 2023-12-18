@@ -151,13 +151,15 @@ def main():
 
                     encrypted_choice = encrypt_message(usr_choice.encode(FORMAT), server_public_key)
                     client.send(encrypted_choice)
+
+
+                    # Receive encrypted message from server, decrypt using private key
+                    encrypted_conf = client.recv(SIZE)
+                    confirmation = decrypt_message(encrypted_conf, user_private_key, FORMAT)
+                    print(f"<{confirmation}>")
                 else:
                     print("Invalid selection.")
             
-                # Received encrypted message from server, decrypt using our private key
-                encrypted_message = client.recv(SIZE)
-                decrypted_message = decrypt_message(encrypted_message, user_private_key, FORMAT)
-                print(f"Received message from server: {decrypted_message}")
 
             client.close()
     except Exception as e:

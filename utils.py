@@ -41,7 +41,7 @@ def place_order(username: str, item: str):
 
     email = record[2]
 
-    print(f"Sending email to {username} at email: {email}")
+    print(f"\nSending email to {username} at email: {email}")
     
     load_dotenv()
 
