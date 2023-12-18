@@ -24,58 +24,54 @@ PLACE_ORDER = "ORDER"
 CHANGE_PW = "PWD"
 
 def handle_client(conn: socket.socket, addr: tuple):
-        # This is where the bulk of handling responses from the client will go
-        print(f"Incoming connection from: {addr}")
-        print(addr)
+    # This is where the bulk of handling responses from the client will go
+    print(f"Incoming connection from: {addr}")
+    print(addr)
+    
+    username = conn.recv(SIZE).decode(FORMAT)
+
+    print(f"Connected with: {username}")
+
+    server_private_key = import_key("server_private_key.pem")
+    user_public_key = import_key(f"{username}_public_key.pem")        
+
+    connected = True
+    while connected:
+        encrypted_message = conn.recv(SIZE)
+        decrypted_message = decrypt_message(encrypted_message, server_private_key, FORMAT)
+
+        print(f"{addr} sent: {decrypted_message}")
         
-        user_credentials = conn.recv(SIZE).decode(FORMAT)
-        usr_creds_lst = user_credentials.split(", ")
-        username = usr_creds_lst[0]
-        email = usr_creds_lst[1]
-
-        print(f"Connected with: {username}")
-
-        server_private_key = import_key("server_private_key.pem")
-        user_public_key = import_key(f"{username}_public_key.pem")        
-
-        connected = True
-        while connected:
-            encrypted_message = conn.recv(SIZE)
-            decrypted_message = decrypt_message(encrypted_message, server_private_key, FORMAT)
-
-            print(f"{addr} sent: {decrypted_message}")
-            
-            if decrypted_message.upper() == DISCONNECT_MESSAGE:
-                connected = False
-            elif decrypted_message.upper() == VIEW_INV:
-                # TODO: implement this
-                print("client chose to view inventory")
-            elif decrypted_message.upper() == PLACE_ORDER:
-                # TODO: implement this
-                item_options = "Bagel, Toast, Croissant"
-                encrypted_items = encrypt_message(item_options.encode(FORMAT), user_public_key)
-                conn.send(encrypted_items)
+        if decrypted_message.upper() == DISCONNECT_MESSAGE:
+            connected = False
+        elif decrypted_message.upper() == VIEW_INV:
+            # TODO: implement this
+            print("client chose to view inventory")
+        elif decrypted_message.upper() == PLACE_ORDER:
+            # TODO: implement this
+            item_options = "Bagel, Toast, Croissant"
+            encrypted_items = encrypt_message(item_options.encode(FORMAT), user_public_key)
+            conn.send(encrypted_items)
 
 
-                encrypted_choice = conn.recv(SIZE)
-                usr_choice = decrypt_message(encrypted_choice, server_private_key, FORMAT)
+            encrypted_choice = conn.recv(SIZE)
+            usr_choice = decrypt_message(encrypted_choice, server_private_key, FORMAT)
 
-                print(f"{username} wants {usr_choice}")
-                print(f"Sending email to {username} at email: {email}")
+            print(f"\n{username} wants {usr_choice}")
 
-                place_order(username, email, usr_choice)
+            place_order(username, usr_choice)
 
 
 
-            elif decrypted_message.upper() == CHANGE_PW:
-                # TODO: implement this
-                print("client chose to change password")
+        elif decrypted_message.upper() == CHANGE_PW:
+            # TODO: implement this
+            print("client chose to change password")
 
-            message = "Test"
-            encrypted_message = encrypt_message(message.encode(FORMAT), user_public_key)
-            conn.send(encrypted_message)
-        
-        conn.close()
+        message = "Test"
+        encrypted_message = encrypt_message(message.encode(FORMAT), user_public_key)
+        conn.send(encrypted_message)
+    
+    conn.close()
 
 # All threads
 threads: List[threading.Thread] = []
