@@ -20,6 +20,9 @@ from utils import view_inventory
 from cryptography_utils import sign_message
 from cryptography_utils import verify_sign
 
+from cryptography_utils import extract_timestamp
+from cryptography_utils import verify_timestamp
+
 from utils import place_order
 from typing import List
 
@@ -50,55 +53,58 @@ def handle_client(conn: socket.socket, addr: tuple):
         encrypted_message = conn.recv(SIZE)
         decrypted_message = decrypt_message(encrypted_message, server_private_key, FORMAT)
 
-        print(f"{addr} sent: {decrypted_message}")       
+        message, time_stamp = extract_timestamp(decrypted_message)
 
-        if decrypted_message.upper() == DISCONNECT_MESSAGE:
-            connected = False
-        elif decrypted_message.upper() == VIEW_INV:
-            # Send to client the inventory list
-            inventory = view_inventory(DB_PATH)
-            inventory_str = "\n".join([f"{item[0]}: {item[1]}, Flavor: {item[2]}, Price: {item[3]}, Quantity: {item[4]}" for item in inventory])
+        print(f"{addr} sent: {message} at {time_stamp}")
 
-            # Encrypt the inventory data
-            encrypted_inventory = encrypt_message(inventory_str.encode(FORMAT), user_public_key)
+        if verify_timestamp(time_stamp):
+            if message.upper() == DISCONNECT_MESSAGE:
+                connected = False
+            elif message.upper() == VIEW_INV:
+                # Send to client the inventory list
+                inventory = view_inventory(DB_PATH)
+                inventory_str = "\n".join([f"{item[0]}: {item[1]}, Flavor: {item[2]}, Price: {item[3]}, Quantity: {item[4]}" for item in inventory])
 
-            # Send encrypted inventory data to client
-            conn.send(encrypted_inventory + b"<END>")
-            print("Inventory sent to client!")
+                # Encrypt the inventory data
+                encrypted_inventory = encrypt_message(inventory_str.encode(FORMAT), user_public_key)
 
-        elif decrypted_message.upper() == PLACE_ORDER:
-            # TODO: implement this
-            item_options = "Bagel, Toast, Croissant"
-            encrypted_items = encrypt_message(item_options.encode(FORMAT), user_public_key)
-            
-            signed_items = sign_message(encrypted_items, server_private_key)
-            conn.send(encrypted_items + signed_items)
+                # Send encrypted inventory data to client
+                conn.send(encrypted_inventory + b"<END>")
+                print("Inventory sent to client!")
+            elif message.upper() == PLACE_ORDER:
+                # TODO: implement this
+                    item_options = "Bagel, Toast, Croissant"
+                    encrypted_items = encrypt_message(item_options.encode(FORMAT), user_public_key)
+                    
+                    signed_items = sign_message(encrypted_items, server_private_key)
+                    conn.send(encrypted_items + signed_items)
 
-            # Receive encrypted choice & signature
-            encrypted_choice = conn.recv(SIZE)
-            usr_choice_enc = encrypted_choice[:-256]
-            signature = encrypted_choice[-256:]
+                    # Receive encrypted choice & signature
+                    encrypted_choice = conn.recv(SIZE)
+                    usr_choice_enc = encrypted_choice[:-256]
+                    signature = encrypted_choice[-256:]
 
-            # Verify signature
-            if verify_sign(usr_choice_enc, signature, user_public_key):
+                    # Verify signature
+                    if verify_sign(usr_choice_enc, signature, user_public_key):
 
-                usr_choice = decrypt_message(usr_choice_enc, server_private_key, FORMAT)
+                        usr_choice = decrypt_message(usr_choice_enc, server_private_key, FORMAT)
 
-                print(f"{username} wants {usr_choice}")
-                
-                # Send confirmation of email to client
-                confirmation = f"Sent an order confirmation for your purchase of {usr_choice} to your email, {username}!"
-                encrypted_conf = encrypt_message(confirmation.encode(FORMAT), user_public_key)
-                conn.send(encrypted_conf)
+                        print(f"{username} wants {usr_choice}")
+                        
+                        # Send confirmation of email to client
+                        confirmation = f"Sent an order confirmation for your purchase of {usr_choice} to your email, {username}!"
+                        encrypted_conf = encrypt_message(confirmation.encode(FORMAT), user_public_key)
+                        conn.send(encrypted_conf)
 
-                place_order(username, usr_choice, DB_PATH)
+                        place_order(username, usr_choice, DB_PATH)
+                    else:
+                        print("Signature did not match.")
 
-            else:
-                print("Signature did not match.")
-
-        elif decrypted_message.upper() == CHANGE_PW:
-            # TODO: implement this
-            print("client chose to change password")
+            elif message.upper() == CHANGE_PW:
+                # TODO: implement this
+                print("client chose to change password")
+        else:
+            print("Replayed message detected")
     
     conn.close()
 

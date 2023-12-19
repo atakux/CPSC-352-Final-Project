@@ -20,6 +20,7 @@ from cryptography_utils import decrypt_message
 from cryptography_utils import encrypt_message
 from cryptography_utils import sign_message
 from cryptography_utils import verify_sign
+from cryptography_utils import timestamp_message
 
 DB = "secure_purchase_order.db"
 PARENT_DIR = Path.cwd().parent
@@ -125,8 +126,11 @@ def main():
                 print("\t- QUIT  : Quit the program\n")
                 message = input(" > ")
 
+                # Create timestamp to add to the message
+                stamped_message = timestamp_message(message)
+
                 # Encrypt message to server using its public key
-                encrypted_message = encrypt_message(message.encode(FORMAT), server_public_key)
+                encrypted_message = encrypt_message(stamped_message.encode(FORMAT), server_public_key)
                 client.send(encrypted_message)
 
                 if message.upper() == DISCONNECT_MESSAGE:
