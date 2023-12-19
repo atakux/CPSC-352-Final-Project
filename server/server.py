@@ -15,10 +15,10 @@ from cryptography_utils import encrypt_message
 from cryptography_utils import decrypt_message
 from cryptography_utils import sign_message
 from cryptography_utils import verify_sign
+from cryptography_utils import extract_timestamp
+from cryptography_utils import verify_timestamp
 from utils import place_order
 from typing import List
-from datetime import datetime
-from datetime import timezone
 
 SIZE = 1024
 FORMAT = "utf-8"
@@ -43,15 +43,11 @@ def handle_client(conn: socket.socket, addr: tuple):
     while connected:
         encrypted_message = conn.recv(SIZE)
         decrypted_message = decrypt_message(encrypted_message, server_private_key, FORMAT)
-        split_message = decrypted_message.split('&')
-        message = split_message[0]
-        time_stamp = split_message[1]
+        message, time_stamp = extract_timestamp(decrypted_message)
 
-        now = int(datetime.now().replace(tzinfo=timezone.utc).timestamp() * 1000)
+        print(f"{addr} sent: {message} at {time_stamp}")
 
-        print(f"{addr} sent: {message} at {time_stamp}, recieved at {now}")
-
-        if int(time_stamp) >= now - 50:
+        if verify_timestamp(time_stamp):
             if message.upper() == DISCONNECT_MESSAGE:
                 connected = False
             elif message.upper() == VIEW_INV:

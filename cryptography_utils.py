@@ -3,6 +3,8 @@ from Crypto.PublicKey import RSA
 from Crypto.Cipher import PKCS1_OAEP
 from Crypto.Hash import SHA256
 from Crypto.Signature import pkcs1_15
+from datetime import datetime
+from datetime import timezone
 
 def hash_password(password: str) -> str:
     """Hash (password + salt)"""
@@ -62,4 +64,30 @@ def verify_sign(message, signature, public_key: RSA.RsaKey):
         pkcs1_15.new(public_key).verify(hash, signature)
         return True
     except (ValueError, TypeError):
+        return False
+
+def timestamp_message(message):
+    """Concatenate a timestamp to the end of a message"""
+    now = datetime.now()
+    time_stamp = int(now.replace(tzinfo=timezone.utc).timestamp() * 1000)
+    stamped_message = message + "`" + str(time_stamp)
+
+    return stamped_message
+
+def extract_timestamp(stamped_message) -> (str, int):
+    """Extract the timestamp from a timestamped message"""
+    split_message = stamped_message.split('`')
+    message = split_message[0]
+    time_stamp = int(split_message[1])
+
+    return message, time_stamp
+
+
+def verify_timestamp(time_stamp: int):
+    """Verify the timestamp of a message to ensure it is not a replay"""
+    now = int(datetime.now().replace(tzinfo=timezone.utc).timestamp() * 1000)
+
+    if time_stamp >= now - 20:
+        return True
+    else: 
         return False
