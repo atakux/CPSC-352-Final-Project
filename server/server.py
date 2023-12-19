@@ -13,10 +13,15 @@ from cryptography_utils import export_key
 from cryptography_utils import import_key
 from cryptography_utils import encrypt_message
 from cryptography_utils import decrypt_message
+
+from utils import view_inventory
+
 from cryptography_utils import sign_message
 from cryptography_utils import verify_sign
+
 from cryptography_utils import extract_timestamp
 from cryptography_utils import verify_timestamp
+
 from utils import place_order
 from typing import List
 
@@ -43,6 +48,7 @@ def handle_client(conn: socket.socket, addr: tuple):
     while connected:
         encrypted_message = conn.recv(SIZE)
         decrypted_message = decrypt_message(encrypted_message, server_private_key, FORMAT)
+
         message, time_stamp = extract_timestamp(decrypted_message)
 
         print(f"{addr} sent: {message} at {time_stamp}")
@@ -51,8 +57,16 @@ def handle_client(conn: socket.socket, addr: tuple):
             if message.upper() == DISCONNECT_MESSAGE:
                 connected = False
             elif message.upper() == VIEW_INV:
-                # TODO: implement this
-                print("client chose to view inventory")
+                # Send to client the inventory list
+                inventory = view_inventory()
+                inventory_str = "\n".join([f"{item[0]}: {item[1]}, Flavor: {item[2]}, Price: {item[3]}, Quantity: {item[4]}" for item in inventory])
+
+                # Encrypt the inventory data
+                encrypted_inventory = encrypt_message(inventory_str.encode(FORMAT), user_public_key)
+
+                # Send encrypted inventory data to client
+                conn.send(encrypted_inventory + b"<END>")
+                print("Inventory sent to client!")
             elif message.upper() == PLACE_ORDER:
                 # TODO: implement this
                     item_options = "Bagel, Toast, Croissant"

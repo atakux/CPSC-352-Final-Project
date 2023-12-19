@@ -3,6 +3,7 @@ import sys
 import re
 import sqlite3
 import yagmail
+from pathlib import Path
 
 from dotenv import load_dotenv
 from pathlib import Path
@@ -16,6 +17,10 @@ DB = "secure_purchase_order.db"
 PARENT_DIR = Path.cwd().parent
 DB_PATH = PARENT_DIR/DB
 
+# Added for view_inventory() to access the bakery's inventory list
+DB = "secure_purchase_order.db"
+PARENT_DIR = Path.cwd().parent
+DB_PATH = PARENT_DIR/DB
 
 def valid_email(email: str):
   """Check if email str valid"""
@@ -25,6 +30,15 @@ def db_connection(db_path: str) -> sqlite3.Connection:
   """Create DB connection using path str"""
   conn = sqlite3.connect(db_path)
   return conn
+
+def view_inventory():
+    """Displays the bakery's inventory from inventory.db"""
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM Bakery352")
+    rows = cursor.fetchall()
+    conn.close()
+    return rows
 
 def place_order(username: str, item: str):
   """Sends email to user with a confirmation of the item they ordered"""
