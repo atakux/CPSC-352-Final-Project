@@ -87,7 +87,7 @@ def verify_timestamp(time_stamp: int):
     """Verify the timestamp of a message to ensure it is not a replay"""
     now = int(datetime.now().replace(tzinfo=timezone.utc).timestamp() * 1000)
 
-    if time_stamp >= now - 100:
+    if time_stamp >= now - 200:
         return True
     else: 
         return False
