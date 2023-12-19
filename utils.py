@@ -3,24 +3,9 @@ import sys
 import re
 import sqlite3
 import yagmail
-from pathlib import Path
 
 from dotenv import load_dotenv
-from pathlib import Path
 
-# Append parent directory to path
-current_dir = os.path.dirname(os.path.abspath(__file__))
-parent_dir = os.path.dirname(current_dir)
-sys.path.append(parent_dir)
-
-DB = "secure_purchase_order.db"
-PARENT_DIR = Path.cwd().parent
-DB_PATH = PARENT_DIR/DB
-
-# Added for view_inventory() to access the bakery's inventory list
-DB = "secure_purchase_order.db"
-PARENT_DIR = Path.cwd().parent
-DB_PATH = PARENT_DIR/DB
 
 def valid_email(email: str):
   """Check if email str valid"""
@@ -31,7 +16,7 @@ def db_connection(db_path: str) -> sqlite3.Connection:
   conn = sqlite3.connect(db_path)
   return conn
 
-def view_inventory():
+def view_inventory(DB_PATH):
     """Displays the bakery's inventory from inventory.db"""
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
@@ -40,7 +25,7 @@ def view_inventory():
     conn.close()
     return rows
 
-def place_order(username: str, item: str):
+def place_order(username: str, item: str, DB_PATH):
   """Sends email to user with a confirmation of the item they ordered"""
 
   # retrieve user email from their username
