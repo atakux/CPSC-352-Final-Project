@@ -13,8 +13,12 @@ from cryptography_utils import export_key
 from cryptography_utils import import_key
 from cryptography_utils import encrypt_message
 from cryptography_utils import decrypt_message
+
+from utils import view_inventory
+
 from cryptography_utils import sign_message
 from cryptography_utils import verify_sign
+
 from utils import place_order
 from typing import List
 
@@ -44,39 +48,52 @@ def handle_client(conn: socket.socket, addr: tuple):
 
         print(f"{addr} sent: {decrypted_message}")
         
+        server_private_key = import_key("server_private_key.pem")
+        user_public_key = import_key(f"{username}_public_key.pem")        
+
+        connected = True
+
         if decrypted_message.upper() == DISCONNECT_MESSAGE:
             connected = False
         elif decrypted_message.upper() == VIEW_INV:
-            # TODO: implement this
-            print("client chose to view inventory")
+            # Send to client the inventory list
+            inventory = view_inventory()
+            inventory_str = "\n".join([f"{item[0]}: {item[1]}, Flavor: {item[2]}, Price: {item[3]}, Quantity: {item[4]}" for item in inventory])
+
+            # Encrypt the inventory data
+            encrypted_inventory = encrypt_message(inventory_str.encode(FORMAT), user_public_key)
+
+            # Send encrypted inventory data to client
+            conn.sendall(encrypted_inventory + b"<END>")
+            print("Inventory sent to client!")
         elif decrypted_message.upper() == PLACE_ORDER:
             # TODO: implement this
-                item_options = "Bagel, Toast, Croissant"
-                encrypted_items = encrypt_message(item_options.encode(FORMAT), user_public_key)
+            item_options = "Bagel, Toast, Croissant"
+            encrypted_items = encrypt_message(item_options.encode(FORMAT), user_public_key)
+            
+            signed_items = sign_message(encrypted_items, server_private_key)
+            conn.send(encrypted_items + signed_items)
+
+            # Receive encrypted choice & signature
+            encrypted_choice = conn.recv(SIZE)
+            usr_choice_enc = encrypted_choice[:-256]
+            signature = encrypted_choice[-256:]
+
+            # Verify signature
+            if verify_sign(usr_choice_enc, signature, user_public_key):
+
+                usr_choice = decrypt_message(usr_choice_enc, server_private_key, FORMAT)
+
+                print(f"{username} wants {usr_choice}")
                 
-                signed_items = sign_message(encrypted_items, server_private_key)
-                conn.send(encrypted_items + signed_items)
+                # Send confirmation of email to client
+                confirmation = f"Sent an order confirmation for your purchase of {usr_choice} to your email, {username}!"
+                encrypted_conf = encrypt_message(confirmation.encode(FORMAT), user_public_key)
+                conn.send(encrypted_conf)
 
-                # Receive encrypted choice & signature
-                encrypted_choice = conn.recv(SIZE)
-                usr_choice_enc = encrypted_choice[:-256]
-                signature = encrypted_choice[-256:]
-
-                # Verify signature
-                if verify_sign(usr_choice_enc, signature, user_public_key):
-
-                    usr_choice = decrypt_message(usr_choice_enc, server_private_key, FORMAT)
-
-                    print(f"{username} wants {usr_choice}")
-                    
-                    # Send confirmation of email to client
-                    confirmation = f"Sent an order confirmation for your purchase of {usr_choice} to your email, {username}!"
-                    encrypted_conf = encrypt_message(confirmation.encode(FORMAT), user_public_key)
-                    conn.send(encrypted_conf)
-
-                    place_order(username, usr_choice)
-                else:
-                    print("Signature did not match.")
+                place_order(username, usr_choice)
+            else:
+                print("Signature did not match.")
 
         elif decrypted_message.upper() == CHANGE_PW:
             # TODO: implement this
