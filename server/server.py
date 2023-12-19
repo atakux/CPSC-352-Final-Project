@@ -8,6 +8,7 @@ sys.path.append(parent_dir)
 
 import socket
 import threading
+from pathlib import Path
 from cryptography_utils import gen_public_private_keys
 from cryptography_utils import export_key
 from cryptography_utils import import_key
@@ -25,6 +26,9 @@ from cryptography_utils import verify_timestamp
 from utils import place_order
 from typing import List
 
+DB = "secure_purchase_order.db"
+PARENT_DIR = Path.cwd().parent
+DB_PATH = PARENT_DIR/DB
 SIZE = 1024
 FORMAT = "utf-8"
 DISCONNECT_MESSAGE = "QUIT"
