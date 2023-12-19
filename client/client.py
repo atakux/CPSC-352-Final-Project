@@ -132,10 +132,6 @@ def main():
                 if message.upper() == DISCONNECT_MESSAGE:
                     connected = False
                 elif message.upper() == VIEW_INV:
-                    # Get the inventory list from the server and encrypt
-                    encrypted_message = encrypt_message(message.encode(FORMAT), server_public_key)
-                    client.send(encrypted_message)
-
                     # Receive the encrypted inventory list from the server
                     decrypted_inventory = b""
                     while True:

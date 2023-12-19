@@ -51,8 +51,6 @@ def handle_client(conn: socket.socket, addr: tuple):
         server_private_key = import_key("server_private_key.pem")
         user_public_key = import_key(f"{username}_public_key.pem")        
 
-        connected = True
-
         if decrypted_message.upper() == DISCONNECT_MESSAGE:
             connected = False
         elif decrypted_message.upper() == VIEW_INV:
@@ -64,8 +62,9 @@ def handle_client(conn: socket.socket, addr: tuple):
             encrypted_inventory = encrypt_message(inventory_str.encode(FORMAT), user_public_key)
 
             # Send encrypted inventory data to client
-            conn.sendall(encrypted_inventory + b"<END>")
+            conn.send(encrypted_inventory + b"<END>")
             print("Inventory sent to client!")
+
         elif decrypted_message.upper() == PLACE_ORDER:
             # TODO: implement this
             item_options = "Bagel, Toast, Croissant"
@@ -92,6 +91,7 @@ def handle_client(conn: socket.socket, addr: tuple):
                 conn.send(encrypted_conf)
 
                 place_order(username, usr_choice)
+
             else:
                 print("Signature did not match.")
 
