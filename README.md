@@ -22,3 +22,4 @@ Already have an account? Already have the installment requirements?
 - Cindy: created the Bakery's inventory db table, and added the functionalities for the "VIEW" command (view_inventory(), implemented for client and server code)
 - Madeline: wrote code for digital signature signing and verification. wrote sign_message to sign a given message with a given private key. wrote verify_sign to verify a signature on a message using the related public key. both of these functions are in cryptography_utils.py
 - Logan: wrote code for timestamps creation and verification. wrote time_stamp_message to concatenate the time_stamp at the end of a message. wrote extract_time_stamp to retrieve the concatenated timestamp from a message. wrote verify_timestamp to verify the timestamp of a given message. all of these functions are found in cryptography_utils.py
+- Jericho: contributed with password hashing and salting within client.py and server.py to ensure authenticity.
