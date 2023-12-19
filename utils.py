@@ -1,10 +1,20 @@
 import os
+import sys
 import re
 import sqlite3
 import yagmail
 
 from dotenv import load_dotenv
-from Crypto.PublicKey import RSA
+from pathlib import Path
+
+# Append parent directory to path
+current_dir = os.path.dirname(os.path.abspath(__file__))
+parent_dir = os.path.dirname(current_dir)
+sys.path.append(parent_dir)
+
+DB = "secure_purchase_order.db"
+PARENT_DIR = Path.cwd().parent
+DB_PATH = PARENT_DIR/DB
 
 
 def valid_email(email: str):
@@ -16,21 +26,39 @@ def db_connection(db_path: str) -> sqlite3.Connection:
   conn = sqlite3.connect(db_path)
   return conn
 
-def place_order(username: str, email: str, item: str):
+def place_order(username: str, item: str):
   """Sends email to user with a confirmation of the item they ordered"""
 
-  load_dotenv()
+  # retrieve user email from their username
+  try:
+    conn = db_connection(db_path=DB_PATH)
 
-  mgr_email = os.environ['EMAIL']
-  mgr_password = os.environ['PASSWORD']
+    # Get user record by username
+    cursor = conn.cursor()
+    sql = "select * from users where username = ?;"
+    cursor.execute(sql, (username,))
+    record = cursor.fetchone()
 
-  yag = yagmail.SMTP(mgr_email, mgr_password)
+    email = record[2]
 
-  contents = [
-              f"Hello {username}!",
-              f"\nYou ordered {item}.",
-              "\n\nThank you!"
-  ]
+    print(f"\nSending email to {username} at email: {email}")
+    
+    load_dotenv()
 
-  yag.send(email, 'Order Confirmation', contents)
+    mgr_email = os.environ['EMAIL']
+    mgr_password = os.environ['PASSWORD']
+
+    yag = yagmail.SMTP(mgr_email, mgr_password)
+
+    contents = [
+                f"Hello {username}!",
+                f"\nYou ordered {item}.",
+                "\n\nThank you!"
+    ]
+
+    yag.send(email, 'Order Confirmation', contents)
+
+  except Exception as e:
+    print(str(e))
+    print("Closing program...")
 
