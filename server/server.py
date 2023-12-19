@@ -13,6 +13,8 @@ from cryptography_utils import export_key
 from cryptography_utils import import_key
 from cryptography_utils import encrypt_message
 from cryptography_utils import decrypt_message
+from cryptography_utils import sign_message
+from cryptography_utils import verify_sign
 from utils import place_order
 from typing import List
 
@@ -49,23 +51,32 @@ def handle_client(conn: socket.socket, addr: tuple):
             print("client chose to view inventory")
         elif decrypted_message.upper() == PLACE_ORDER:
             # TODO: implement this
-            item_options = "Bagel, Toast, Croissant"
-            encrypted_items = encrypt_message(item_options.encode(FORMAT), user_public_key)
-            conn.send(encrypted_items)
+                item_options = "Bagel, Toast, Croissant"
+                encrypted_items = encrypt_message(item_options.encode(FORMAT), user_public_key)
+                
+                signed_items = sign_message(encrypted_items, server_private_key)
+                conn.send(encrypted_items + signed_items)
 
+                # Receive encrypted choice & signature
+                encrypted_choice = conn.recv(SIZE)
+                usr_choice_enc = encrypted_choice[:-256]
+                signature = encrypted_choice[-256:]
 
-            encrypted_choice = conn.recv(SIZE)
-            usr_choice = decrypt_message(encrypted_choice, server_private_key, FORMAT)
+                # Verify signature
+                if verify_sign(usr_choice_enc, signature, user_public_key):
 
-            print(f"\n{username} wants {usr_choice}")
+                    usr_choice = decrypt_message(usr_choice_enc, server_private_key, FORMAT)
 
-            place_order(username, usr_choice)
+                    print(f"{username} wants {usr_choice}")
+                    
+                    # Send confirmation of email to client
+                    confirmation = f"Sent an order confirmation for your purchase of {usr_choice} to your email, {username}!"
+                    encrypted_conf = encrypt_message(confirmation.encode(FORMAT), user_public_key)
+                    conn.send(encrypted_conf)
 
-            # Send confirmation of email to client
-            confirmation = f"Sent an order confirmation for your purchase of {usr_choice} to your email, {username}!"
-            encrypted_conf = encrypt_message(confirmation.encode(FORMAT), user_public_key)
-            conn.send(encrypted_conf)
-
+                    place_order(username, usr_choice)
+                else:
+                    print("Signature did not match.")
 
         elif decrypted_message.upper() == CHANGE_PW:
             # TODO: implement this
@@ -124,4 +135,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-    

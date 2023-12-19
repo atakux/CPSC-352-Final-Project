@@ -1,6 +1,8 @@
 import bcrypt
 from Crypto.PublicKey import RSA
 from Crypto.Cipher import PKCS1_OAEP
+from Crypto.Hash import SHA256
+from Crypto.Signature import pkcs1_15
 
 def hash_password(password: str) -> str:
     """Hash (password + salt)"""
@@ -45,3 +47,19 @@ def decrypt_message(message: bytes, private_key: RSA.RsaKey, format: str) -> str
     cipher = PKCS1_OAEP.new(private_key)
     decrypted_message = cipher.decrypt(message)
     return decrypted_message.decode(format)
+
+def sign_message(message, private_key: RSA.RsaKey):
+    """Sign message using sender's private key"""
+    hash = SHA256.new(message)
+    signature = pkcs1_15.new(private_key).sign(hash)
+
+    return signature
+
+def verify_sign(message, signature, public_key: RSA.RsaKey):
+    """Verify message using sender's public key"""
+    hash = SHA256.new(message)
+    try:
+        pkcs1_15.new(public_key).verify(hash, signature)
+        return True
+    except (ValueError, TypeError):
+        return False
