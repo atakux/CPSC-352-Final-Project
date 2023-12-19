@@ -183,9 +183,6 @@ def main():
                     else:
                         print("Signature did not match.")
 
-                    encrypted_choice = encrypt_message(usr_choice.encode(FORMAT), server_public_key)
-                    client.send(encrypted_choice)
-
 
                     # Receive encrypted message from server, decrypt using private key
                     encrypted_conf = client.recv(SIZE)

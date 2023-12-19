@@ -72,11 +72,14 @@ def timestamp_message(message):
     time_stamp = int(now.replace(tzinfo=timezone.utc).timestamp() * 1000)
     stamped_message = message + "`" + str(time_stamp)
 
+    print(stamped_message)
+
     return stamped_message
 
 def extract_timestamp(stamped_message) -> (str, int):
     """Extract the timestamp from a timestamped message"""
     split_message = stamped_message.split('`')
+    print(split_message)
     message = split_message[0]
     time_stamp = int(split_message[1])
 
