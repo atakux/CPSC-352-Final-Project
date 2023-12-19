@@ -108,7 +108,7 @@ def main():
             client.connect(addr)
             print(f"Client connected to server at {ip}:{port}")
 
-            message = f"{username}, {email}"
+            message = username
             client.send(message.encode(FORMAT))
 
             connected = True
