@@ -62,7 +62,7 @@ def handle_client(conn: socket.socket, addr: tuple):
                 connected = False
             elif message.upper() == VIEW_INV:
                 # Send to client the inventory list
-                inventory = view_inventory()
+                inventory = view_inventory(DB_PATH)
                 inventory_str = "\n".join([f"{item[0]}: {item[1]}, Flavor: {item[2]}, Price: {item[3]}, Quantity: {item[4]}" for item in inventory])
 
                 # Encrypt the inventory data
@@ -96,7 +96,7 @@ def handle_client(conn: socket.socket, addr: tuple):
                         encrypted_conf = encrypt_message(confirmation.encode(FORMAT), user_public_key)
                         conn.send(encrypted_conf)
 
-                        place_order(username, usr_choice)
+                        place_order(username, usr_choice, DB_PATH)
                     else:
                         print("Signature did not match.")
 
