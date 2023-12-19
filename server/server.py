@@ -17,6 +17,8 @@ from cryptography_utils import sign_message
 from cryptography_utils import verify_sign
 from utils import place_order
 from typing import List
+from datetime import datetime
+from datetime import timezone
 
 SIZE = 1024
 FORMAT = "utf-8"
@@ -41,46 +43,54 @@ def handle_client(conn: socket.socket, addr: tuple):
     while connected:
         encrypted_message = conn.recv(SIZE)
         decrypted_message = decrypt_message(encrypted_message, server_private_key, FORMAT)
+        split_message = decrypted_message.split('&')
+        message = split_message[0]
+        time_stamp = split_message[1]
 
-        print(f"{addr} sent: {decrypted_message}")
-        
-        if decrypted_message.upper() == DISCONNECT_MESSAGE:
-            connected = False
-        elif decrypted_message.upper() == VIEW_INV:
-            # TODO: implement this
-            print("client chose to view inventory")
-        elif decrypted_message.upper() == PLACE_ORDER:
-            # TODO: implement this
-                item_options = "Bagel, Toast, Croissant"
-                encrypted_items = encrypt_message(item_options.encode(FORMAT), user_public_key)
-                
-                signed_items = sign_message(encrypted_items, server_private_key)
-                conn.send(encrypted_items + signed_items)
+        now = int(datetime.now().replace(tzinfo=timezone.utc).timestamp() * 1000)
 
-                # Receive encrypted choice & signature
-                encrypted_choice = conn.recv(SIZE)
-                usr_choice_enc = encrypted_choice[:-256]
-                signature = encrypted_choice[-256:]
+        print(f"{addr} sent: {message} at {time_stamp}, recieved at {now}")
 
-                # Verify signature
-                if verify_sign(usr_choice_enc, signature, user_public_key):
-
-                    usr_choice = decrypt_message(usr_choice_enc, server_private_key, FORMAT)
-
-                    print(f"{username} wants {usr_choice}")
+        if int(time_stamp) >= now - 50:
+            if message.upper() == DISCONNECT_MESSAGE:
+                connected = False
+            elif message.upper() == VIEW_INV:
+                # TODO: implement this
+                print("client chose to view inventory")
+            elif message.upper() == PLACE_ORDER:
+                # TODO: implement this
+                    item_options = "Bagel, Toast, Croissant"
+                    encrypted_items = encrypt_message(item_options.encode(FORMAT), user_public_key)
                     
-                    # Send confirmation of email to client
-                    confirmation = f"Sent an order confirmation for your purchase of {usr_choice} to your email, {username}!"
-                    encrypted_conf = encrypt_message(confirmation.encode(FORMAT), user_public_key)
-                    conn.send(encrypted_conf)
+                    signed_items = sign_message(encrypted_items, server_private_key)
+                    conn.send(encrypted_items + signed_items)
 
-                    place_order(username, usr_choice)
-                else:
-                    print("Signature did not match.")
+                    # Receive encrypted choice & signature
+                    encrypted_choice = conn.recv(SIZE)
+                    usr_choice_enc = encrypted_choice[:-256]
+                    signature = encrypted_choice[-256:]
 
-        elif decrypted_message.upper() == CHANGE_PW:
-            # TODO: implement this
-            print("client chose to change password")
+                    # Verify signature
+                    if verify_sign(usr_choice_enc, signature, user_public_key):
+
+                        usr_choice = decrypt_message(usr_choice_enc, server_private_key, FORMAT)
+
+                        print(f"{username} wants {usr_choice}")
+                        
+                        # Send confirmation of email to client
+                        confirmation = f"Sent an order confirmation for your purchase of {usr_choice} to your email, {username}!"
+                        encrypted_conf = encrypt_message(confirmation.encode(FORMAT), user_public_key)
+                        conn.send(encrypted_conf)
+
+                        place_order(username, usr_choice)
+                    else:
+                        print("Signature did not match.")
+
+            elif message.upper() == CHANGE_PW:
+                # TODO: implement this
+                print("client chose to change password")
+        else:
+            print("Replayed message detected")
     
     conn.close()
 
