@@ -46,10 +46,7 @@ def handle_client(conn: socket.socket, addr: tuple):
         encrypted_message = conn.recv(SIZE)
         decrypted_message = decrypt_message(encrypted_message, server_private_key, FORMAT)
 
-        print(f"{addr} sent: {decrypted_message}")
-        
-        server_private_key = import_key("server_private_key.pem")
-        user_public_key = import_key(f"{username}_public_key.pem")        
+        print(f"{addr} sent: {decrypted_message}")       
 
         if decrypted_message.upper() == DISCONNECT_MESSAGE:
             connected = False
