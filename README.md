@@ -1,5 +1,14 @@
 # CPSC-352-Final-Project
 
+## Group members
+- Angela DeLeo
+- Daniel Cazarez
+- Gurman Gill
+- Logan Blakeborough
+- Madeline Sharpe
+- Jericho Montecillo
+- Cindy Chheng
+
 ## Usage:
 New user/First time user:
 1. First, on first run git clone the repository or extract a zip of the repository
