@@ -1,6 +1,10 @@
 import bcrypt
 from Crypto.PublicKey import RSA
 from Crypto.Cipher import PKCS1_OAEP
+from Crypto.Hash import SHA256
+from Crypto.Signature import pkcs1_15
+from datetime import datetime
+from datetime import timezone
 
 def hash_password(password: str) -> str:
     """Hash (password + salt)"""
@@ -45,3 +49,45 @@ def decrypt_message(message: bytes, private_key: RSA.RsaKey, format: str) -> str
     cipher = PKCS1_OAEP.new(private_key)
     decrypted_message = cipher.decrypt(message)
     return decrypted_message.decode(format)
+
+def sign_message(message, private_key: RSA.RsaKey):
+    """Sign message using sender's private key"""
+    hash = SHA256.new(message)
+    signature = pkcs1_15.new(private_key).sign(hash)
+
+    return signature
+
+def verify_sign(message, signature, public_key: RSA.RsaKey):
+    """Verify message using sender's public key"""
+    hash = SHA256.new(message)
+    try:
+        pkcs1_15.new(public_key).verify(hash, signature)
+        return True
+    except (ValueError, TypeError):
+        return False
+
+def timestamp_message(message):
+    """Concatenate a timestamp to the end of a message"""
+    now = datetime.now()
+    time_stamp = int(now.replace(tzinfo=timezone.utc).timestamp() * 1000)
+    stamped_message = message + "`" + str(time_stamp)
+
+    return stamped_message
+
+def extract_timestamp(stamped_message) -> (str, int):
+    """Extract the timestamp from a timestamped message"""
+    split_message = stamped_message.split('`')
+    message = split_message[0]
+    time_stamp = int(split_message[1])
+
+    return message, time_stamp
+
+
+def verify_timestamp(time_stamp: int):
+    """Verify the timestamp of a message to ensure it is not a replay"""
+    now = int(datetime.now().replace(tzinfo=timezone.utc).timestamp() * 1000)
+
+    if time_stamp >= now - 200:
+        return True
+    else: 
+        return False

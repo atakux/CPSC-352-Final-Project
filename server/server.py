@@ -8,42 +8,105 @@ sys.path.append(parent_dir)
 
 import socket
 import threading
+from pathlib import Path
 from cryptography_utils import gen_public_private_keys
 from cryptography_utils import export_key
 from cryptography_utils import import_key
 from cryptography_utils import encrypt_message
 from cryptography_utils import decrypt_message
+
+from utils import view_inventory
+
+from cryptography_utils import sign_message
+from cryptography_utils import verify_sign
+
+from cryptography_utils import extract_timestamp
+from cryptography_utils import verify_timestamp
+
+from utils import place_order
 from typing import List
 
+DB = "secure_purchase_order.db"
+PARENT_DIR = Path.cwd().parent
+DB_PATH = PARENT_DIR/DB
 SIZE = 1024
 FORMAT = "utf-8"
 DISCONNECT_MESSAGE = "QUIT"
+VIEW_INV = "VIEW"
+PLACE_ORDER = "ORDER"
+CHANGE_PW = "PWD"
 
 def handle_client(conn: socket.socket, addr: tuple):
-        # This is where the bulk of handling responses from the client will go
-        print(f"Incoming connection from: {addr}")
-        
-        username = conn.recv(SIZE).decode(FORMAT)
-        print(f"Connected with: {username}")
+    # This is where the bulk of handling responses from the client will go
+    print(f"Incoming connection from: {addr}")
+    print(addr)
+    
+    username = conn.recv(SIZE).decode(FORMAT)
 
-        server_private_key = import_key("server_private_key.pem")
-        user_public_key = import_key(f"{username}_public_key.pem")        
+    print(f"Connected with: {username}")
 
-        connected = True
-        while connected:
-            encrypted_message = conn.recv(SIZE)
-            decrypted_message = decrypt_message(encrypted_message, server_private_key, FORMAT)
+    server_private_key = import_key("server_private_key.pem")
+    user_public_key = import_key(f"{username}_public_key.pem")        
 
-            print(f"{addr} sent: {decrypted_message}")
-            
-            if decrypted_message.upper() == DISCONNECT_MESSAGE:
+    connected = True
+    while connected:
+        encrypted_message = conn.recv(SIZE)
+        decrypted_message = decrypt_message(encrypted_message, server_private_key, FORMAT)
+
+        message, time_stamp = extract_timestamp(decrypted_message)
+
+        print(f"{addr} sent: {message} at {time_stamp}")
+
+        if verify_timestamp(time_stamp):
+            if message.upper() == DISCONNECT_MESSAGE:
                 connected = False
+            elif message.upper() == VIEW_INV:
+                # Send to client the inventory list
+                inventory = view_inventory(DB_PATH)
+                inventory_str = "\n".join([f"{item[0]}: {item[1]}, Flavor: {item[2]}, Price: {item[3]}, Quantity: {item[4]}" for item in inventory])
 
-            message = "Test"
-            encrypted_message = encrypt_message(message.encode(FORMAT), user_public_key)
-            conn.send(encrypted_message)
-        
-        conn.close()
+                # Encrypt the inventory data
+                encrypted_inventory = encrypt_message(inventory_str.encode(FORMAT), user_public_key)
+
+                # Send encrypted inventory data to client
+                conn.send(encrypted_inventory + b"<END>")
+                print("Inventory sent to client!")
+            elif message.upper() == PLACE_ORDER:
+                # TODO: implement this
+                    item_options = "Bagel, Toast, Croissant"
+                    encrypted_items = encrypt_message(item_options.encode(FORMAT), user_public_key)
+                    
+                    signed_items = sign_message(encrypted_items, server_private_key)
+                    conn.send(encrypted_items + signed_items)
+
+                    # Receive encrypted choice & signature
+                    encrypted_choice = conn.recv(SIZE)
+                    usr_choice_enc = encrypted_choice[:-256]
+                    signature = encrypted_choice[-256:]
+
+                    # Verify signature
+                    if verify_sign(usr_choice_enc, signature, user_public_key):
+
+                        usr_choice = decrypt_message(usr_choice_enc, server_private_key, FORMAT)
+
+                        print(f"{username} wants {usr_choice}")
+                        
+                        # Send confirmation of email to client
+                        confirmation = f"Sent an order confirmation for your purchase of {usr_choice} to your email, {username}!"
+                        encrypted_conf = encrypt_message(confirmation.encode(FORMAT), user_public_key)
+                        conn.send(encrypted_conf)
+
+                        place_order(username, usr_choice, DB_PATH)
+                    else:
+                        print("Signature did not match.")
+
+            elif message.upper() == CHANGE_PW:
+                # TODO: implement this
+                print("client chose to change password")
+        else:
+            print("Replayed message detected")
+    
+    conn.close()
 
 # All threads
 threads: List[threading.Thread] = []
@@ -96,4 +159,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-    
