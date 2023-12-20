@@ -9,6 +9,14 @@
 - Jericho Montecillo
 - Cindy Chheng
 
+# Prereqs
+Create a Python venv, steps:
+- Run: ```python -m venv .venv``` or ```python3 -m venv .venv``` depending on your OS.
+- Activate the venv:
+    1. For Unix systems: ```source .venv/bin/activate```
+    2. For Windows systems: ```.venv\Scripts\activate.bat```
+- Install requirements, run: ```pip install -r requirements.txt```
+
 ## Usage:
 New user/First time user:
 1. First, on first run git clone the repository or extract a zip of the repository
